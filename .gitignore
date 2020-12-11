@@ -4,3 +4,4 @@ common-crawl
 common-crawl-raw
 rib*
 *.gz
+*.csv
