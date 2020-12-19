@@ -90,3 +90,41 @@ type Country {
 }
 ```
 
+### Queries
+
+```graphql
+query {  
+  getcountry(func: type(Country)) {
+    country_code
+    
+    domains(first: 100) {
+      domain
+      ~domains {
+        asnnum
+      }
+      documents(first: 10) {
+        path
+      }
+    }
+  }
+}
+```
+
+
+```graphql
+query {  
+  getcountry(func: eq(country_code, "US")) {
+    country_code
+    
+    domains(first: 100) {
+      domain
+      ~domains {
+        asnnum
+      }
+      documents(first: 10) {
+        path
+      }
+    }
+  }
+}
+```
