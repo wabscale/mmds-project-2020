@@ -6,6 +6,11 @@ services:
     ports:
       - 6379:6379
 
+  bloom:
+    image: redislabs/rebloom:latest
+    ports:
+      - 6378:6379
+
   dgraph:
     image: dgraph/standalone:v20.03.0
     volumes:

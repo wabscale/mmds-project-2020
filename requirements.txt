@@ -12,3 +12,4 @@ easydict
 redis
 cachetools
 tqdm
+redisbloom

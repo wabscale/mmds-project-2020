@@ -7,6 +7,7 @@
 from easydict import EasyDict as edict
 from cachetools import cached, LRUCache
 from redis import Redis
+from redisbloom.client import Client as RedisBloom
 import multiprocessing as mp
 import pandas as pd
 import pydgraph
@@ -21,7 +22,10 @@ import os
 
 
 filepaths = list(
-    map(lambda path: "./common-crawl/" + path, os.listdir("./common-crawl/"))
+    map(
+        lambda path: "./common-crawl/" + path,
+        filter(lambda x: x.endswith(".csv"), os.listdir("./common-crawl/")),
+    )
 )
 
 # # Preview data
@@ -96,6 +100,12 @@ def set_schema(client):
 # In[ ]:
 
 
+bloom = RedisBloom(port=6378)
+bloom.bfCreate("domain", 0.01, 1000)
+bloom.bfCreate("asnnum", 0.01, 1000)
+bloom.close()
+
+
 class SpicyCache(object):
     def __init__(self, objname, localsize):
         super(SpicyCache, self).__init__()
@@ -105,6 +115,7 @@ class SpicyCache(object):
         self.redis = Redis("localhost")
         self.dgraph, self.stub = get_client()
         self.txn = self.dgraph.txn()
+        self.bloom = RedisBloom(port=6378)
 
     def _key(self, key):
         return f"{self.objname}-{key}"
@@ -113,6 +124,7 @@ class SpicyCache(object):
         timeout = 3600 if self.objname == "asnnum" else "30"
         self.redis.setex(self._key(key), timeout, value)
         self.local_cache[self._key(key)] = value
+        self.bloom.bfAdd(self.objname, self._key(key))
 
     def __contains__(self, key):
         local_result = self.local_cache.get(self._key(key), None)
@@ -124,14 +136,16 @@ class SpicyCache(object):
             self[key] = redis_result.decode()
             return True
 
-        query = (
-            """query all($a: string) { all(func: eq(%s, $a)) { uid } }""" % self.objname
-        )
-        dgraph_result = self.txn.query(query, variables={"$a": str(key)})
-        thing = json.loads(dgraph_result.json)
-        if len(thing["all"]) > 0:
-            self[key] = thing["all"][0]["uid"], 16
-            return True
+        if self.bloom.bfExists(self.objname, self._key(key)) == 0:
+            query = (
+                """query all($a: string) { all(func: eq(%s, $a)) { uid } }"""
+                % self.objname
+            )
+            dgraph_result = self.txn.query(query, variables={"$a": str(key)})
+            thing = json.loads(dgraph_result.json)
+            if len(thing["all"]) > 0:
+                self[key] = thing["all"][0]["uid"], 16
+                return True
 
         return False
 
@@ -145,14 +159,16 @@ class SpicyCache(object):
             self[key] = int(redis_result.decode())
             return redis_result.decode()
 
-        query = (
-            """query all($a: string) { all(func: eq(%s, $a)) { uid } }""" % self.objname
-        )
-        dgraph_result = self.txn.query(query, variables={"$a": str(key)})
-        thing = json.loads(dgraph_result.json)
-        if len(thing["all"]) > 0:
-            self[key] = thing["all"][0]["uid"]
-            return thing["all"][0]["uid"]
+        if self.bloom.bfExists(self.objname, self._key(key)) == 0:
+            query = (
+                """query all($a: string) { all(func: eq(%s, $a)) { uid } }"""
+                % self.objname
+            )
+            dgraph_result = self.txn.query(query, variables={"$a": str(key)})
+            thing = json.loads(dgraph_result.json)
+            if len(thing["all"]) > 0:
+                self[key] = thing["all"][0]["uid"]
+                return thing["all"][0]["uid"]
 
         return None
 
@@ -167,7 +183,7 @@ class SpicyCache(object):
 
 
 def insert(thread_id, filename, batch_size=100, iterations=50000):
-    print(f'starting job {thread_id}')
+    print(f"starting job {thread_id}")
     client, stub = get_client()
     # Create caches
     domain_uids = SpicyCache("domain", 100000)
@@ -175,7 +191,7 @@ def insert(thread_id, filename, batch_size=100, iterations=50000):
     country_uids = dict()
 
     # Create file read streamer
-    reader = csv.DictReader(gzip.open(filename, "rt"))
+    reader = csv.DictReader(open(filename, "r"))
     count = 0
 
     # Create a new transaction.
@@ -293,11 +309,12 @@ def yeet():
     set_schema(client)
     stub.close()
 
+
 yeet()
 
-print('Initializing pool')
+print("Initializing pool")
 
-Redis('localhost').flushall()
+Redis("localhost").flushall()
 
 start_time = time.time()
 with mp.Pool(20) as pool:
@@ -305,7 +322,9 @@ with mp.Pool(20) as pool:
     pool.close()
 end_time = time.time()
 
-print(f"Finished in {end_time-start_time}s with {sum(counts)/(end_time-start_time)}rows/s")
+print(
+    f"Finished in {end_time-start_time}s with {sum(counts)/(end_time-start_time)}rows/s"
+)
 
 redis_push_thread.join()
 
