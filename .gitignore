@@ -5,3 +5,7 @@ common-crawl-raw
 rib*
 *.gz
 *.csv
+
+checkpoint.pickle
+
+.idea
