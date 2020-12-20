@@ -2,7 +2,7 @@ import json
 from typing import Union
 
 from cachetools.lru import LRUCache
-from redis import Redis
+from redis import Redis, exceptions
 from redisbloom.client import Client as RedisBloom
 
 from utils.dgraph import get_client
@@ -170,8 +170,10 @@ class FullLayeredCache(LayeredCache):
         self.dgraph, self.stub = get_client()
         self.txn = self.dgraph.txn()
 
-        # Initialize the bloom filter
-        if self.bloom.bfInfo(node_name) is None:
+        # Initialize the bloom filter (if it doesnt already exist)
+        try:
+            self.bloom.bfInfo(node_name)
+        except exceptions.ResponseError:
             self.bloom.bfCreate(node_name, p, n)
 
     def __contains__(self, key: str) -> bool:

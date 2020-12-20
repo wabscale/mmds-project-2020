@@ -8,7 +8,6 @@ schema = """
 asnnum: int @index(int) .
 org: string .
 domains: [uid] @reverse .
-country: [uid] @reverse .
 
 type ASN {
     asnnum
@@ -26,7 +25,6 @@ type Domain {
     tld
     ip
     documents
-    country
 }
 
 path: string @index(term) .
@@ -35,9 +33,15 @@ type Document {
 }
 
 country_code: string @index(exact) .
+asns: [uid] @reverse .
 type Country {
     country_code
-    domains
+    asns
+}
+
+countries: [uid] @reverse .
+type Root {
+    countries
 }
 
 """
