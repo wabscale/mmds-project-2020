@@ -13,29 +13,39 @@ import tqdm
 from easydict import EasyDict as edict
 
 from utils.asn import get_asn_table
-from utils.cache import SimpleCache, SpicyCache
-from utils.checkpoints import init_checkpoints, set_checkpoint, get_checkpoint
+from utils.cache import LayeredCache, FullLayeredCache
+from utils.checkpoints import set_checkpoint_lock, init_checkpoints, set_checkpoint, get_checkpoint
 from utils.dgraph import get_client, initialize_dgraph
-
-filepaths = list(
-    map(
-        lambda path: "./common-crawl/" + path,
-        filter(lambda x: x.endswith(".csv.gz"), os.listdir("./common-crawl/")),
-    )
-)
 
 
 def ingest_country_asn():
+    """
+    This function will ingest the country, and asn data into both DGraph and
+    into the redis cache.
+
+    Both the ASN and country data can be stored in memory in redis and or
+    the layer 1 LRU cache. For this, we handle these node types initially.
+
+    There are less than 300 countries and ~62K ASNs
+
+    :return:
+    """
+
+    # Create DGraph client
     client, stub = get_client()
 
-    asntbl = get_asn_table()
-    country_uids = SimpleCache('country', 300)
-    asn_uids = SimpleCache('asnnum', 10000)
+    # Get pandas.DataFrame of ASN data
+    asn_table = get_asn_table()
+
+    # Create layered caches for both countries and ASNs
+    country_uids = LayeredCache('country', 300)
+    asn_uids = LayeredCache('asnnum', 10000)
 
     txn = client.txn()
 
     if not get_checkpoint('asns'):
-        for index, asnrow in tqdm.tqdm(enumerate(asntbl.itertuples()), desc='Ingesting ASNs', total=len(asntbl)):
+        for index, asnrow in tqdm.tqdm(enumerate(asn_table.itertuples()), desc='Ingesting ASNs', total=len(asn_table)):
+            # Create ASN Node
             asn = {
                 "uid": "_:" + str(asnrow.Index),
                 "dgraph.type": "ASN",
@@ -44,17 +54,23 @@ def ingest_country_asn():
             }
             response = txn.mutate(set_obj=asn)
             asn_uids[asnrow.Index] = response.uids[str(asnrow.Index)]
+
+            # Batch ASN node commits. 500 seems to be the sweet
+            # spot. If we go too low or too high, it gets painfully
+            # slow.
             if index % 500 == 0:
                 txn.commit()
                 del txn
                 txn = client.txn()
+
         txn.commit()
         del txn
         txn = client.txn()
         set_checkpoint('asns')
 
     if not get_checkpoint('countries'):
-        for country_code in tqdm.tqdm(asntbl['country'].dropna().unique(), desc='Ingesting countries'):
+        for country_code in tqdm.tqdm(asn_table['country'].dropna().unique(), desc='Ingesting countries'):
+            # Create Country Node
             country = {
                 "uid": "_:" + country_code,
                 "dgraph.type": "Country",
@@ -62,6 +78,7 @@ def ingest_country_asn():
             }
             response = txn.mutate(set_obj=country)
             country_uids[country_code] = response.uids[country_code]
+
         txn.commit()
         set_checkpoint('countries')
 
@@ -78,9 +95,9 @@ def insert(job_index, filename, batch_size=100, iterations=50000):
     client, stub = get_client()
 
     # Create caches
-    domain_uids = SpicyCache("domain", 1000000)
-    asn_uids = SimpleCache("asnnum", 10000)
-    country_uids = SimpleCache('country', 300)
+    domain_uids = FullLayeredCache("domain", 1000000)
+    asn_uids = LayeredCache("asnnum", 10000)
+    country_uids = LayeredCache('country', 300)
 
     # Create file read streamer
     file = gzip.open(filename, "rt")
@@ -176,31 +193,41 @@ def insert(job_index, filename, batch_size=100, iterations=50000):
         return count
 
 
-def ingest_process_init(l: mp.Lock):
-    global lock
-    lock = l
-
-
 def main():
+    # Initialize checkpoint file
     init_checkpoints()
+
+    # Initialize dgraph schema
     initialize_dgraph()
+
+    # Ingest country and ASN data
     ingest_country_asn()
 
+    # Number of processes to use in the worker pool
     processes = 16
 
-    l = mp.Lock()
-    print("Initializing pool")
+    # Initialize lock for checkpoint file
+    checkpoint_lock = mp.Lock()
 
-    start_time = time.time()
-    with mp.Pool(processes=processes, initializer=ingest_process_init, initargs=(l,)) as pool:
-        print(f"Starting {processes} worker processes")
-        counts = pool.starmap(insert, enumerate(filepaths))
-        pool.close()
-    end_time = time.time()
-
-    print(
-        "Finished in {:.2f}s with {:.2f}rows/s".format(end_time - start_time, sum(counts) / (end_time - start_time))
+    # Get data file paths
+    file_paths = map(
+        lambda path: "./common-crawl/" + path,
+        filter(lambda x: x.endswith(".csv.gz"), os.listdir("./common-crawl/")),
     )
+
+    # Create worker pool
+    start_time = time.time()
+    with mp.Pool(processes=processes, initializer=set_checkpoint_lock, initargs=(checkpoint_lock,)) as pool:
+        print(f"Starting {processes} worker processes")
+
+        # Run insert function on all files we can see
+        counts = pool.starmap(insert, enumerate(file_paths))
+
+        # Close pool
+        pool.close()
+    elapsed = time.time() - start_time
+
+    print("Finished in {:.2f}s with {:.2f}rows/s {} processes".format(elapsed, sum(counts) / elapsed, processes))
 
 
 if __name__ == '__main__':

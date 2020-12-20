@@ -34,6 +34,9 @@ I estimate that I have ~1.96B rows of individual documents. This is a sample of 
 
 ### Graphs
 
+
+![](./high-level-graph.mmd.svg)
+
 I've begun to create graphs from the raw data using [dgraph](https://dgraph.io/). I would not recommend that anyone uses dgraph. It uses its own version of graphql. This decision makes dgraph another promising tool to fall for the overhyped garbage that is graphql. All the graphql schema, and query crap stretched out what should have taken 20 minutes into 2 days.
 
 anyway....
@@ -130,7 +133,59 @@ query {
 ```
 
 
-### Ingestion
+### Graph Ingestion
+
+In order to take the raw compressed csv's we created in the preprocessing stage, and stream it into dgraph we need to do 
+a few clever things. In order to draw an edge in dgraph, you need to know what the uid of both nodes are. These
+uids are created when we create the nodes themselves. With the amount of data we are dealing with,
+this simple problem of needing to track the uids becomes something that requires a multi-layered approach.
+
+This diagram shows the approximate system I used to ingest the graph. In the interest of simplicity I have reduced
+the number of some services here. In reality, I used 16 Ingest Workers, 6 dgraph alpha nodes and 3 graph zero nodes.
+
+![](./ingest.mmd.svg)
+
+When we're ingesting in domain, country and asn nodes into the graph we want to create the node *once*, save the node
+uid somewhere then retrieve it when we see it again. 
+With the volume of data we need to create then save, this is quite a large task. 
+We can get the uid from dgraph after we have created a node, but these queries are unbelievably slow. 
+The solution to this was a multi-layered caching system. When searching for an uid, we will start
+at the first layer, trying each until we find the uid. Each level is slower but can hold more data than the one before it, 
+with the last being getting the uid from dgraph.
 
 
-![](./ingest.svg)
+#### Layer 1 - LRU
+
+The first layer of the cache is both fastest and simplest. This layer is an in memory least recently used cache. 
+We initialize a cache instance for each node type with some maximum size that makes sense for the node type.
+
+#### Layer 2 - Redis
+
+Redis is an object store service you can connect to over the network. We are using it as a key value store.
+Being that we need to reach out to it over the network, this adds some overhead. Dispite this networking bottleneck,
+redis is battle tested and highly effective at getting responses back quickly.
+
+#### Layer 3 - Bloom
+
+At this last layer we have RedisBloom instance. A bloom filter is a super interesting and underrated data structure.
+A bloom filter is a structure that is used to determine set membership. Bloom filters are initialized with a p and n value.
+The n value is the number of set elements you want to store in the bloom filter. The p value is the probability of
+false positive.
+
+> The way it works internally is quite clever, but outside the scope of what we need to know here. 
+You can read more about implementation specifics [here](https://en.wikipedia.org/wiki/Bloom_filter).
+
+At this stage, we want to check to see if the key we are looking for has a uid in dgraph. We will be able to check for 
+key membership in the bloom filter significantly faster than querying dgraph. By tracking key membership for the nodes
+already in dgraph at this stage we significantly reduce the number of cache misses that will result in a slow query to
+dgraph.
+
+#### Layer 4 -- DGraph
+
+As an absolute last resort, we will query dgraph for the uid directly. These operations are very, very slow.
+
+
+
+
+
+a

@@ -6,17 +6,22 @@ graph LR
   f4[file4] ==> f8[file8]
   end
 
-  subgraph UID Caching
-  subgraph Redis
+  subgraph Layerd UID Caching
+
+  subgraph Layer 2 - Redis
   redis[(Redis key value store)]
+  end
+
+  subgraph Layer 3 - Bloom Filter
   bloom[(Bloom filter)]
   end
 
-  subgraph LRU Cache
+  subgraph Layer 1 - LRU Cache
   lru[(LRU Cache)]
   lru -.-> |cache miss| redis
   lru -.-> |existence check| bloom
   end
+
   end
 
   subgraph Worker Pool

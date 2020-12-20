@@ -1,0 +1,22 @@
+graph TD
+  subgraph countrygroup [Country]
+  country[US]
+  end
+
+  subgraph asngroup [ASNs]
+  asn1[ASN 1234]
+  asn2[ASN 1337]
+  country --> asn1 & asn2
+  end
+
+  subgraph domains [Domains]
+  asn1 --> duckduckgo.com & google.com
+  asn2 --> nyu.edu & engineering.nyu.edu
+  end
+
+  subgraph documents [Documents]
+  duckduckgo.com --> s1["/search"] & /about
+  google.com --> s2["/search"] & /humans.txt
+  nyu.edu --> s3["/search"] & /finance
+  engineering.nyu.edu --> s4["/search"] & /gibmoremonies
+  end
