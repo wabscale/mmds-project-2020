@@ -38,7 +38,7 @@ I've begun to create graphs from the raw data using [dgraph](https://dgraph.io/)
 
 anyway....
 
-I've created a graph where the different unique entities within the csv are represented. Nodes are ASNs, countries, domains, and documents. Using a fraction of a percent of the data I have processed. 
+I've created a graph where the different unique entities within the csv are represented. Nodes are ASNs, countries, domains, and documents. Using a fraction of a percent of the data I have processed.
 
 ![alt graph image](./img/us-graph-1.png)
 
@@ -52,14 +52,14 @@ The graph schema is as follows
 asnnum: int @index(int) .
 org: string .
 domains: [uid] @reverse .
-    
+
 # Domain fields
 domain: string @index(term,exact) .
 tld: string .
 ip: string .
 documents: [uid] @reverse .
 country: [uid] @reverse .
-    
+
 # Document fields
 path: string @index(term) .
 
@@ -71,7 +71,7 @@ type ASN {
     org
     domains
 }
-    
+
 type Domain {
     domain
     tld
@@ -79,11 +79,11 @@ type Domain {
     documents
     country
 }
-    
+
 type Document {
     path
 }
-    
+
 type Country {
     country_code
     domains
@@ -96,7 +96,7 @@ type Country {
 query {  
   getcountry(func: type(Country)) {
     country_code
-    
+
     domains(first: 100) {
       domain
       ~domains {
@@ -115,7 +115,7 @@ query {
 query {  
   getcountry(func: eq(country_code, "US")) {
     country_code
-    
+
     domains(first: 100) {
       domain
       ~domains {
@@ -128,3 +128,9 @@ query {
   }
 }
 ```
+
+
+### Ingestion
+
+
+![](./mermaid/injest.svg)

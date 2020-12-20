@@ -1,0 +1,43 @@
+graph LR
+  subgraph Physical Storage
+  f1[file1] ==> f5[file5]
+  f2[file2] ==> f6[file6]
+  f3[file3] ==> f7[file7]
+  f4[file4] ==> f8[file8]
+  end
+
+  subgraph UID Caching
+  subgraph Redis
+  redis[(Redis key value store)]
+  bloom[(Bloom filter)]
+  end
+
+  subgraph LRU Cache
+  lru[(LRU Cache)]
+  lru -.-> |cache miss| redis
+  lru -.-> |existence check| bloom
+  end
+  end
+
+  subgraph Worker Pool
+  f5 ==>|stream| w1(Ingest  Worker 1)
+  f6 ==>|stream| w2(Ingest  Worker 2)
+  f7 ==>|stream| w3(Ingest  Worker 3)
+  f8 ==>|stream| w4(Ingest  Worker 4)
+  lru <-.- |Get UID| w1 & w2 & w3 & w4
+  end
+
+
+  subgraph dgraph[dgraph]
+  w1 ==> |Node Ingest| a1
+  w2 ==> |Node Ingest| a2
+  w3 ==> |Node Ingest| a3
+  w4 ==> |Node Ingest| a4
+
+  z1[zero1] & z2[zero2] --> ratel
+  a1[alpha1] --> z1
+  a2[alpha2] --> z1
+  a3[alpha3] --> z2
+  a4[alpha4] --> z2
+  bloom -.-> |Get UID| a1
+  end
