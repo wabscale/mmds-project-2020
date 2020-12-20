@@ -133,4 +133,4 @@ query {
 ### Ingestion
 
 
-![](./injest.svg)
+![](./ingest.svg)
