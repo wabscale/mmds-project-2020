@@ -133,4 +133,4 @@ query {
 ### Ingestion
 
 
-![](./mermaid/injest.png)
+![](./mermaid/injest.svg)
