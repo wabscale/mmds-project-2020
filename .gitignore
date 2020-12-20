@@ -5,7 +5,8 @@ common-crawl-raw
 rib*
 *.gz
 *.csv
-
+__pycache__
+*.pyc
 checkpoint.pickle
 
 .idea
