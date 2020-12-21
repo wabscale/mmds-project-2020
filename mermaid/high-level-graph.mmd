@@ -1,22 +1,28 @@
 graph TD
+  subgraph rootgroup [root]
+  root[root node]
+  end
+
   subgraph countrygroup [Country]
-  country[US]
+  root --> US & JP
   end
 
   subgraph asngroup [ASNs]
   asn1[ASN 1234]
   asn2[ASN 1337]
-  country --> asn1 & asn2
+  asn3[ASN 1338]
+  US --> asn1 & asn2
+  JP --> asn3
   end
 
   subgraph domains [Domains]
   asn1 --> duckduckgo.com & google.com
   asn2 --> nyu.edu & engineering.nyu.edu
+  asn3 --> site.jp
   end
 
   subgraph documents [Documents]
-  duckduckgo.com --> s1["/search"] & /about
-  google.com --> s2["/search"] & /humans.txt
-  nyu.edu --> s3["/search"] & /finance
-  engineering.nyu.edu --> s4["/search"] & /gibmoremonies
+  duckduckgo.com & google.com & nyu.edu & site.jp -.-> /robots.txt
+  google.com & nyu.edu & engineering.nyu.edu -.-> /sitemap.xml
+  google.com -.-> /humans.txt
   end
