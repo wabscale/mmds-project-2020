@@ -1,0 +1,22 @@
+graph LR
+  subgraph dgraph[dgraph]
+  subgraph Alpha
+  a1[alpha1] & a2[alpha2]
+  a3[alpha3] & a4[alpha4]
+  a5[alpha5] & a6[alpha6]
+  end
+
+  subgraph Zero
+  z1[zero1] & z2[zero2] & z3[zero3]
+  end
+
+  subgraph Ratel
+  ratel
+  end
+
+  w1((Workrer pool)) ==> |Data Stream| a1 & a2 & a3 & a4 & a5 & a6
+  a1 & a2 --> |Compress & Index| z1
+  a3 & a4 --> |Compress & Index| z2
+  a5 & a6 --> |Compress & Index| z3
+  z1 & z2 & z3 -.-> |Data Retrieve| ratel
+  end

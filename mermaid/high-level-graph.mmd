@@ -1,4 +1,5 @@
 graph TD
+  subgraph hvg[High Level Graph]
   subgraph rootgroup [root]
   root[root node]
   end
@@ -23,6 +24,7 @@ graph TD
 
   subgraph documents [Documents]
   duckduckgo.com & google.com & nyu.edu & site.jp -.-> /robots.txt
-  google.com & nyu.edu & engineering.nyu.edu -.-> /sitemap.xml
+  google.com & nyu.edu & engineering.nyu.edu & site.jp -.-> /sitemap.xml
   google.com -.-> /humans.txt
+  end
   end

@@ -6,8 +6,11 @@ if [ ! -d node_modules ]; then
     npm i
 fi
 
+if [ ! -d ../svg ]; then
+    mkdir ../svg
+fi
+
 for mmdf in $(find -name '*.mmd'); do
     echo "rendering ${mmdf}"
-    npx mmdc -i ${mmdf} -o ../${mmdf}.svg -t forest
+    npx mmdc -i ${mmdf} -o ../svg/${mmdf}.svg -t forest
 done
-

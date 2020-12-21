@@ -15,7 +15,7 @@ type ASN {
     domains
 }
 
-domain: string @index(term,exact) .
+domain: string @index(trigram,exact) .
 tld: string .
 ip: string .
 documents: [uid] @reverse .

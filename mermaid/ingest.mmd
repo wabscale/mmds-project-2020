@@ -1,4 +1,5 @@
 graph LR
+  subgraph ingest[ingest]
   subgraph Physical Storage
   f1[file1] ==> f5[file5]
   f2[file2] ==> f6[file6]
@@ -45,4 +46,5 @@ graph LR
   a3[alpha3] --> z2
   a4[alpha4] --> z2
   bloom -.-> |Get UID| a1
+  end
   end
