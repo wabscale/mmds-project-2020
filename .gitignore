@@ -10,3 +10,4 @@ checkpoint.pickle
 
 .idea
 mmds-data*
+dgraph-data*
