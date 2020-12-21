@@ -66,6 +66,7 @@ class StubWrapper:
         self.stubs = [
             pydgraph.DgraphClientStub(f"localhost:{9080 + (i % n)}"),
             pydgraph.DgraphClientStub(f"localhost:{9080 + ((i + 1) % n)}"),
+            pydgraph.DgraphClientStub(f"localhost:{9080 + ((i + 2) % n)}"),
         ]
 
     def close(self):

@@ -9,6 +9,7 @@ import os
 import time
 import traceback
 
+import grpc
 import tqdm
 import pydgraph
 from easydict import EasyDict as edict
@@ -200,7 +201,7 @@ def insert(job_index, filename, batch_size=100, iterations=1000000):
                     print(f'Job {job_index} Reached [{count}/{iterations}]')
 
                     
-            except pydgraph.errors.AbortedError:
+            except (pydgraph.errors.AbortedError, grpc._channel._InactiveRpcError) as e:
                 print(f'DGraph client crashed for Job {job_index}, resetting...')
                 time.sleep(1)
                 stub.close()

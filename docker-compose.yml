@@ -24,7 +24,7 @@ services:
     image: dgraph/dgraph:latest
     restart: on-failure
     volumes:
-      - z1:/dgraph
+      - ./mmds-data/z1:/dgraph
     ports:
       - 5080:5080
       - 6080:6080
@@ -34,7 +34,7 @@ services:
     image: dgraph/dgraph:latest
     restart: on-failure
     volumes:
-      - z2:/dgraph
+      - ./mmds-data/z2:/dgraph
     ports:
       - 5081:5081
       - 6081:6081
@@ -44,7 +44,7 @@ services:
     image: dgraph/dgraph:latest
     restart: on-failure
     volumes:
-      - z3:/dgraph
+      - ./mmds-data/z3:/dgraph
     ports:
       - 5082:5082
       - 6082:6082
@@ -54,7 +54,7 @@ services:
     image: dgraph/dgraph:latest
     restart: on-failure
     volumes:
-      - a1:/dgraph
+      - ./mmds-data/a1:/dgraph
     ports:
       - 8080:8080
       - 9080:9080
@@ -64,7 +64,7 @@ services:
     image: dgraph/dgraph:latest
     restart: on-failure
     volumes:
-      - a2:/dgraph
+      - ./mmds-data/a2:/dgraph
     ports:
       - 8081:8081
       - 9081:9081
@@ -74,7 +74,7 @@ services:
     image: dgraph/dgraph:latest
     restart: on-failure
     volumes:
-      - a3:/dgraph
+      - ./mmds-data/a3:/dgraph
     ports:
       - 8082:8082
       - 9082:9082
@@ -84,7 +84,7 @@ services:
     image: dgraph/dgraph:latest
     restart: on-failure
     volumes:
-      - a4:/dgraph
+      - ./mmds-data/a4:/dgraph
     ports:
       - 8083:8083
       - 9083:9083
@@ -94,7 +94,7 @@ services:
     image: dgraph/dgraph:latest
     restart: on-failure
     volumes:
-      - a5:/dgraph
+      - ./mmds-data/a5:/dgraph
     ports:
       - 8084:8084
       - 9084:9084
@@ -104,7 +104,7 @@ services:
     image: dgraph/dgraph:latest
     restart: on-failure
     volumes:
-      - a6:/dgraph
+      - ./mmds-data/a6:/dgraph
     ports:
       - 8085:8085
       - 9085:9085
@@ -116,16 +116,3 @@ services:
       - 8000:8000
     command: dgraph-ratel    
 
-volumes:
-  dgraph: {}
-
-  z1: {}
-  z2: {}
-  z3: {}
-
-  a1: {}
-  a2: {}
-  a3: {}
-  a4: {}
-  a5: {}
-  a6: {}

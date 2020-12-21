@@ -133,6 +133,25 @@ query {
 ```
 
 
+```graphql
+query {  
+  root(func: type(Root)) {
+  	countries(first: 5) {
+      country_code
+      asns(first: 5) {
+        asnnum
+        domains(first: 5) {
+          domain
+          documents(first: 5) {
+            path
+          }
+        }
+      }
+    }
+  }
+}
+```
+
 ### Graph Ingestion
 
 In order to take the raw compressed csv's we created in the preprocessing stage, and stream it into dgraph we need to do 

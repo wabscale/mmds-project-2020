@@ -9,3 +9,4 @@ __pycache__
 checkpoint.pickle
 
 .idea
+mmds-data*
